@@ -1,0 +1,37 @@
+<!doctype html>
+<title>Index</title>
+
+<head>
+  <h1>WebSocket Demo</h1>
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.js"></script>
+  <script type="text/javascript">
+    var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+  </script>
+</head>
+
+
+<form id="messageForm" action="/send" method="post">
+  Message:
+  <input type="text" name="message"/>
+</form>
+
+<div id="result">
+</div>
+
+<script>
+  $(document).ready(function() {
+    $("#messageForm").submit(function(event) {
+      event.preventDefault();
+
+      $.post($SCRIPT_ROOT + "/send", {
+        message: $('input[name="message"]').val(),
+      }, function(data) {
+        $("#result").empty().append(data);
+      });
+      return false;
+    });
+  });
+</script>
+
+
+</html>
