@@ -3,8 +3,8 @@
 
 import zmq
 
-IN = 'inproc://in'
-OUT = 'inproc://out'
+IN = 'ipc:///tmp/message_flow_in'
+OUT = 'ipc:///tmp/message_flow_out'
 
 context = zmq.Context()
 
@@ -16,4 +16,5 @@ feed_out = context.socket(zmq.XPUB)
 feed_out.bind(OUT)
 
 print('[message_proxy] Forwarding messages between {} and {}'.format(IN, OUT))
-zmq.device(zmq.FORWARDER, feed_in, feed_out)
+dev = zmq.device(zmq.FORWARDER, feed_in, feed_out)
+dev.start()

@@ -12,7 +12,7 @@ class WebSocket(websocket.WebSocketHandler):
 
     def open(self):
         if self not in self.participants:
-            self.participants.append(self)
+            self.participants.add(self)
 
     def on_close(self):
         if self in self.participants:
@@ -25,14 +25,15 @@ class WebSocket(websocket.WebSocketHandler):
     # http://mrjoes.github.io/2013/06/21/python-realtime.html
     @classmethod
     def broadcast(cls, data):
+        data = data[0]
         print('Sending to websocket: {}'.format(data))
-        for p in self.participants:
+        for p in cls.participants:
             p.write_message(data)
 
 
 if __name__ == "__main__":
     PORT = 4567
-    LOCAL_OUTPUT = 'inproc://out'
+    LOCAL_OUTPUT = 'ipc:///tmp/message_flow_out'
 
     import zmq
 

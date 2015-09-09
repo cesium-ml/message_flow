@@ -9,25 +9,61 @@
   </script>
 </head>
 
+<p>
+  <b>WebSocket Status: </b><span id="connected">Offline</span>
+</p>
 
 <form id="messageForm" action="/send" method="post">
   Message:
   <input type="text" name="message"/>
 </form>
 
+<p>API Result:</p>
+<hr/>
 <div id="result">
 </div>
+<hr/>
+
+<p>Incoming:</p>
+<hr/>
+<div id="incoming">
+</div>
+<hr/>
 
 <script>
   $(document).ready(function() {
+
+  get_time = function() {
+    var date = new Date();
+    var n = date.toDateString();
+    return date.toLocaleTimeString();
+  }
+
+
+    var ws = new WebSocket("ws://" + {{ request.host|tojson|safe }} + "/websocket");
+
+    ws.onopen = function (event) {
+      $("#connected").empty().append("Online");
+    };
+    ws.onclose = function (event) {
+      $("#connected").empty().append("Offline");
+    };
+    ws.onmessage = function (event) {
+      var message = event.data.split(" ");
+      var channel = message.shift();
+      var data = JSON.parse(message.join(" "));
+      $("#incoming").append(get_time() + " " + data["data"] + "<br/>");
+    };
+
     $("#messageForm").submit(function(event) {
       event.preventDefault();
 
-      $.post($SCRIPT_ROOT + "/send", {
-        message: $('input[name="message"]').val(),
-      }, function(data) {
-        $("#result").empty().append(data);
-      });
+      $.post($SCRIPT_ROOT + "/send",
+             {message: $('input[name="message"]').val()},
+             function(result) {
+               $("#result").append('<b>' + get_time() + '</b>');
+               $("#result").append(' [' + result['status'] + '] ' + result['data'] + '<br/>');
+             });
       return false;
     });
   });
