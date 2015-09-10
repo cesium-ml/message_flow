@@ -4,6 +4,7 @@
 <head>
   <h1>WebSocket Demo</h1>
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reconnecting-websocket/1.0.0/reconnecting-websocket.js"></script>
   <script type="text/javascript">
     var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
   </script>
@@ -40,7 +41,7 @@
   }
 
 
-    var ws = new WebSocket("ws://" + {{ request.host|tojson|safe }} + "/websocket");
+    var ws = new ReconnectingWebSocket("ws://" + {{ request.host|tojson|safe }} + "/websocket");
 
     ws.onopen = function (event) {
       $("#connected").empty().append("Online");
