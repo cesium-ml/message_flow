@@ -1,4 +1,5 @@
 from tornado import websocket, web, ioloop
+import json
 
 
 # Could also use: http://aaugustin.github.io/websockets/
@@ -7,28 +8,60 @@ from tornado import websocket, web, ioloop
 class WebSocket(websocket.WebSocketHandler):
     participants = set()
 
+    def __init__(self, *args, **kwargs):
+        websocket.WebSocketHandler.__init__(self, *args, **kwargs)
+
+        self.authenticated = False
+        self.auth_failures = 0
+        self.user = None
+
     def check_origin(self, origin):
         return True
 
     def open(self):
         if self not in self.participants:
             self.participants.add(self)
+            self.request_auth()
 
     def on_close(self):
         if self in self.participants:
             self.participants.remove(self)
 
-    def on_message(self, message):
-        # Ignore incoming messages
-        pass
+    def on_message(self, auth_token):
+        self.authenticate(auth_token)
+        if not self.authenticated and self.auth_failures < 3:
+            self.request_auth()
+
+    def request_auth(self):
+        self.auth_failures += 1
+        self.send_json(id="AUTH REQUEST")
+
+    def send_json(self, **kwargs):
+        self.write_message(json.dumps(kwargs))
+
+    def authenticate(self, auth_token):
+        # TODO MUST UPDATE THIS
+        self.authenticated = True
+        try:
+            self.user, token = json.loads(auth_token)["token"].split()
+        except:
+            self.send_json(id="AUTH FAILED")
+            return False
+
+        # !! Validate token here !!
+        # check_token(token)
+
+        self.send_json(id="AUTH OK")
 
     # http://mrjoes.github.io/2013/06/21/python-realtime.html
     @classmethod
     def broadcast(cls, data):
-        data = data[0]
-        print('Sending to websocket: {}'.format(data))
+        channel, data = data[0].decode('utf-8').split(" ", 1)
+        user = json.loads(data)["user"]
+
         for p in cls.participants:
-            p.write_message(data)
+            if p.authenticated and p.user == user:
+                p.write_message(data)
 
 
 if __name__ == "__main__":

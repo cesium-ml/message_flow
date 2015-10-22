@@ -2,17 +2,28 @@
 <title>Index</title>
 
 <head>
-  <h1>WebSocket Demo</h1>
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/reconnecting-websocket/1.0.0/reconnecting-websocket.js"></script>
+
+  <script src="{{ url_for('static', filename='js/cookies.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/websocket.js')}}"></script>
+
   <script type="text/javascript">
+    var $USER = {{ username|tojson }};
     var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+
+    createCookie("username", $USER);
   </script>
+
 </head>
 
-<p>
-  <b>WebSocket Status: </b><span id="connected">Offline</span>
-</p>
+<h1>WebSocket Demo</h1>
+
+<ul>
+  <li><b>User: </b><span id="username"></span></li>
+  <li><b>WebSocket Connection: </b><span id="connected">Offline</span></li>
+  <li><b>WebSocket Authenticated: </b><span id="authenticated">No</span></li>
+</ul>
 
 <form id="messageForm" action="/send" method="post">
   Message:
@@ -21,50 +32,61 @@
 
 <p>API Result:</p>
 <hr/>
-<div id="result">
-</div>
+<ol id="result">
+</ol>
 <hr/>
 
 <p>Incoming:</p>
 <hr/>
-<div id="incoming">
-</div>
+<ol id="incoming">
+</ol>
 <hr/>
 
-<script>
+<script type="text/javascript">
+  /* Here we define how incoming events (announced on the WebSocket)
+  are handled */
+
+  function messageHandler(data) {
+    switch (data["id"]) {
+      case "TASK DONE":
+        $("#incoming").append("<li>" + getTime() + " [" + data["id"] +
+                              "] " + data["data"] + "</li>");
+        break;
+      default:
+        $("#incoming").append("<li>Unknown message</li>");
+      }
+  };
+
+
   $(document).ready(function() {
+    $("#username").empty().append($USER);
 
-  get_time = function() {
-    var date = new Date();
-    var n = date.toDateString();
-    return date.toLocaleTimeString();
-  }
+    /* Set up the WebSocket, and tell it which function will handle
+       incoming messages */
+
+    // Note: you should be running SSL and change this to wss
+    ws = createSocket("ws://" + {{ request.host|tojson|safe }} + "/websocket",
+                      messageHandler
+    );
 
 
-    var ws = new ReconnectingWebSocket("ws://" + {{ request.host|tojson|safe }} + "/websocket");
-
-    ws.onopen = function (event) {
-      $("#connected").empty().append("Online");
-    };
-    ws.onclose = function (event) {
-      $("#connected").empty().append("Offline");
-    };
-    ws.onmessage = function (event) {
-      var message = event.data.split(" ");
-      var channel = message.shift();
-      var data = JSON.parse(message.join(" "));
-      $("#incoming").append(get_time() + " " + data["data"] + "<br/>");
-    };
+    /* Setup up the submission form behavior */
 
     $("#messageForm").submit(function(event) {
       event.preventDefault();
 
       $.post($SCRIPT_ROOT + "/send",
-             {message: $('input[name="message"]').val()},
-             function(result) {
-               $("#result").append('<b>' + get_time() + '</b>');
-               $("#result").append(' [' + result['status'] + '] ' + result['data'] + '<br/>');
-             });
+             {message: $('input[name="message"]').val()})
+
+             .success(function(result) {
+               $("#result").append('<li><b>' + getTime() + '</b>' + ' [' +
+                                   result['status'] + '] ' + result['data'] + '</li>');
+             })
+
+             .error(function(e) {
+               $("#result").append('<li><b>' + e.statusText + '</b></li>');
+             } );
+
       return false;
     });
   });
