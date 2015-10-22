@@ -34,11 +34,15 @@ def long_task(user, message):
 
     """
     import time
+    try:
+        from time import monotonic
+    except ImportError:
+        from time import time as monotonic
     import random
 
-    m0 = time.monotonic()
+    m0 = monotonic()
     time.sleep(2 + random.random())
-    m1 = time.monotonic()
+    m1 = monotonic()
 
     processed_message = 'Message processed, "{}" in {:.2f} seconds'.format(message, m1 - m0)
     push(user, TID.DONE, processed_message)
