@@ -65,12 +65,7 @@ def send():
 # !! Certainly don't get usernames from the client like I do here--that would be highly
 # insecure
 def get_username():
-    username = request.cookies.get('username', None)
-    if username is None:
-        import random
-        username = 'test' + str(random.random())[2:7] + '@myservice.org'
-
-    return username
+    return request.cookies.get('username')
 
 
 # This API call should only be callable by logged in users

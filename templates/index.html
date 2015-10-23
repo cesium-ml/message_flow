@@ -3,16 +3,14 @@
 
 <head>
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/reconnecting-websocket/1.0.0/reconnecting-websocket.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reconnecting-websocket/1.0.0/reconnecting-websocket.min.js"></script>
 
-  <script src="{{ url_for('static', filename='js/cookies.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/cookies.js')}}"></script>
+  <script src="{{ url_for('static', filename='js/user.js')}}"></script>
   <script src="{{ url_for('static', filename='js/websocket.js')}}"></script>
 
   <script type="text/javascript">
-    var $USER = {{ username|tojson }};
     var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-
-    createCookie("username", $USER);
   </script>
 
 </head>
@@ -59,7 +57,9 @@
 
 
   $(document).ready(function() {
-    $("#username").empty().append($USER);
+    /* Fake username insertion.  Remove this when using in the real
+    world, and get the username from the Flask context. */
+    $USER = readCookie("username") || generateUserCookie();
 
     /* Set up the WebSocket, and tell it which function will handle
        incoming messages */
@@ -69,6 +69,8 @@
                       messageHandler
     );
 
+
+    $("#username").empty().append($USER);
 
     /* Setup up the submission form behavior */
 
