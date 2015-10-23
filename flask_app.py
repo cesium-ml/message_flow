@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, escape
 
 import json
 import threading
@@ -24,6 +24,9 @@ class TID:
 
 
 def push(user, task_id, data):
+    """Push message to `user` over websocket.
+
+    """
     pub.send(b"0 " + json.dumps({'user': user,
                                  'id': task_id,
                                  'data': data}).encode('utf-8'))
@@ -44,7 +47,7 @@ def long_task(user, message):
     time.sleep(2 + random.random())
     m1 = monotonic()
 
-    processed_message = 'Message processed, "{}" in {:.2f} seconds'.format(message, m1 - m0)
+    processed_message = 'Message processed, "{}" in {:.2f} seconds'.format(escape(message), m1 - m0)
     push(user, TID.DONE, processed_message)
 
 
