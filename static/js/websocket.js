@@ -9,17 +9,30 @@ function webSocketAuth() {
         function(resolve, reject) {
             // First, try and read the authentication token from a cookie
             var cookie_token = readCookie('auth_token');
+            var no_token = "no_auth_token_user bad_token";
 
             if (cookie_token) {
                 resolve(cookie_token);
             } else {
                 // If not found, ask the server for a new one
-                $.get($SCRIPT_ROOT + "/socket_auth_token",
-                      function(data) {
-                          data = JSON.stringify(data);
-                          createCookie('auth_token', data, 30);
-                          resolve(data);
-                      });
+                $.ajax({
+                    url: $SCRIPT_ROOT + "/socket_auth_token",
+                    statusCode: {
+                        // If we get a gateway error, it probably means nginx is being restarted.
+                        // Not much we can do, other than wait a bit and continue with a
+                        // fake token.
+                        405: function() {
+                            setTimeout(function() { resolve(no_token); }, 1000);
+                        }
+                    }})
+                    .done(function(data) {
+                        createCookie('auth_token', data);
+                        resolve(data);
+                    })
+                    .fail(function() {
+                        // Same situation as with 405.
+                        setTimeout(function() { resolve(no_token); }, 1000);
+                    });
             }
         }
     );
@@ -41,6 +54,12 @@ function createSocket(url, messageHandler) {
 
     ws.onmessage = function (event) {
         var message = event.data;
+
+        // Ignore heartbeat signals
+        if (message === 'HB') {
+            return;
+        }
+
         var data = JSON.parse(message);
         var id = data["id"];
 
@@ -48,9 +67,12 @@ function createSocket(url, messageHandler) {
         case "AUTH REQUEST":
             webSocketAuth();
             break;
+        case "AUTH FAILED":
+            eraseCookie('auth_token');
+            break;
         case "AUTH OK":
             $("#connected").empty().append("Online");
-            $("#authenticated").empty().append("Yes")
+            $("#authenticated").empty().append("Yes");
             break;
         default:
             messageHandler(data);

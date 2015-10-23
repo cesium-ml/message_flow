@@ -1,5 +1,10 @@
+# encoding: utf-8
+
 from tornado import websocket, web, ioloop
 import json
+import zmq
+
+ctx = zmq.Context()
 
 
 # Could also use: http://aaugustin.github.io/websockets/
@@ -40,18 +45,25 @@ class WebSocket(websocket.WebSocketHandler):
         self.write_message(json.dumps(kwargs))
 
     def authenticate(self, auth_token):
-        # TODO MUST UPDATE THIS
-        self.authenticated = True
-        try:
-            self.user, token = json.loads(auth_token)["token"].split()
-        except:
+        socket = ctx.socket(zmq.REQ)
+        socket.connect("ipc:///tmp/authenticator.sock")
+        socket.send(b"? " + auth_token.encode('utf-8'))
+
+        status = socket.recv()
+
+        if status == b'OK':
+            self.authenticated = True
+            self.user = auth_token.split(' ')[0]
+            self.send_json(id="AUTH OK")
+        else:
+            self.authenticated = False
             self.send_json(id="AUTH FAILED")
-            return False
 
-        # !! Validate token here !!
-        # check_token(token)
 
-        self.send_json(id="AUTH OK")
+    @classmethod
+    def heartbeat(cls):
+        for p in cls.participants:
+            p.write_message(b'HB')
 
     # http://mrjoes.github.io/2013/06/21/python-realtime.html
     @classmethod
@@ -75,8 +87,6 @@ if __name__ == "__main__":
 
     ioloop.install()
 
-    ctx = zmq.Context()
-
     sub = ctx.socket(zmq.SUB)
     sub.connect(LOCAL_OUTPUT)
     sub.setsockopt(zmq.SUBSCRIBE, b'')
@@ -89,6 +99,10 @@ if __name__ == "__main__":
         (r'/websocket', WebSocket),
     ])
     server.listen(PORT)
+
+    # We send a heartbeat every 45 seconds to make sure that nginx
+    # proxy does not time out and close the connection
+    ioloop.PeriodicCallback(WebSocket.heartbeat, 45000).start()
 
     print('[websocket_server] Listening for incoming websocket connections on port {}'.format(PORT))
     ioloop.IOLoop.instance().start()

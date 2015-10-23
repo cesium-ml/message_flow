@@ -47,11 +47,12 @@
   function messageHandler(data) {
     switch (data["id"]) {
       case "TASK DONE":
-        $("#incoming").append("<li>" + getTime() + " [" + data["id"] +
-                              "] " + data["data"] + "</li>");
+        $("#incoming")
+          .append("<li>" + getTime() + " [" + data["id"] + "] " + data["data"] + "</li>");
         break;
       default:
-        $("#incoming").append("<li>Unknown message</li>");
+        $("#incoming")
+         .append("<li>Unknown message (" + JSON.stringify(data) + ")</li>");
       }
   };
 

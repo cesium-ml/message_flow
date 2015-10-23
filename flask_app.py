@@ -71,12 +71,20 @@ def get_username():
     return request.cookies.get('username')
 
 
-# This API call should only be callable by logged in users
+# !!!
+# This API call should **only be callable by logged in users**
+# !!!
 @app.route('/socket_auth_token', methods=['GET'])
 def socket_auth_token():
     username = get_username()
-    token = hashlib.sha256(uuid.uuid4().bytes + username.encode()).hexdigest()
-    return jsonify(token=username + " " + token)
+
+    socket = ctx.socket(zmq.REQ)
+    socket.connect("ipc:///tmp/authenticator.sock")
+    socket.send(b"! " + username.encode('utf-8'))
+
+    token = socket.recv()
+
+    return token
 
 
 @app.route('/')
