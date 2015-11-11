@@ -42,7 +42,7 @@ if __name__ == "__main__":
         # Messages can be in one of the following formats:
         #
         # ! username@foo.bar
-        # ? token
+        # ? username@foo.bar token
         #
         # The first generates a new token for the specified user.
         # The second validates a given token.
