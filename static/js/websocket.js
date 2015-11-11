@@ -56,7 +56,7 @@ function createSocket(url, messageHandler) {
         var message = event.data;
 
         // Ignore heartbeat signals
-        if (message === 'HB') {
+        if (message === '<3') {
             return;
         }
 

@@ -63,7 +63,7 @@ class WebSocket(websocket.WebSocketHandler):
     @classmethod
     def heartbeat(cls):
         for p in cls.participants:
-            p.write_message(b'HB')
+            p.write_message(b'<3')
 
     # http://mrjoes.github.io/2013/06/21/python-realtime.html
     @classmethod
