@@ -4,7 +4,7 @@ SHELL=/bin/bash
 
 # Supervisord only runs under Python 2, but that is no problem, even
 # if everything else runs under Python 3.
-SUPERVISORD=$(HOME)/envs/py2/bin/supervisord
+SUPERVISORD=supervisord
 
 all: supervisord
 
