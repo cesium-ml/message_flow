@@ -5,9 +5,12 @@ import threading
 import hashlib
 import uuid
 import collections
+import conf
+import jwt
 
 
 app = Flask(__name__)
+app.secret_key = conf.secret
 
 
 import zmq
@@ -27,7 +30,7 @@ def push(user, task_id, data):
     """Push message to `user` over websocket.
 
     """
-    pub.send(b"0 " + json.dumps({'user': user,
+    pub.send(b"0 " + json.dumps({'username': user,
                                  'id': task_id,
                                  'data': data}).encode('utf-8'))
 
@@ -76,15 +79,7 @@ def get_username():
 # !!!
 @app.route('/socket_auth_token', methods=['GET'])
 def socket_auth_token():
-    username = get_username()
-
-    socket = ctx.socket(zmq.REQ)
-    socket.connect("ipc:///tmp/authenticator.sock")
-    socket.send(b"! " + username.encode('utf-8'))
-
-    token = socket.recv()
-
-    return token
+    return jwt.encode({'username': get_username()}, app.secret_key)
 
 
 @app.route('/')

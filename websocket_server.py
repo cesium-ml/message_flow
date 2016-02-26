@@ -3,6 +3,9 @@
 from tornado import websocket, web, ioloop
 import json
 import zmq
+import jwt
+
+from conf import secret
 
 ctx = zmq.Context()
 
@@ -18,7 +21,7 @@ class WebSocket(websocket.WebSocketHandler):
 
         self.authenticated = False
         self.auth_failures = 0
-        self.user = None
+        self.username = None
 
     def check_origin(self, origin):
         return True
@@ -45,20 +48,13 @@ class WebSocket(websocket.WebSocketHandler):
         self.write_message(json.dumps(kwargs))
 
     def authenticate(self, auth_token):
-        socket = ctx.socket(zmq.REQ)
-        socket.connect("ipc:///tmp/authenticator.sock")
-        socket.send(b"? " + auth_token.encode('utf-8'))
-
-        status = socket.recv()
-
-        if status == b'OK':
+        try:
+            token_payload = jwt.decode(auth_token, secret)
+            self.username = token_payload['username']
             self.authenticated = True
-            self.user = auth_token.split(' ')[0]
-            self.send_json(id="AUTH OK")
-        else:
-            self.authenticated = False
-            self.send_json(id="AUTH FAILED")
-
+            self.send_json(id='AUTH OK')
+        except DecodeError:
+            self.send_json(id='AUTH FAILED')
 
     @classmethod
     def heartbeat(cls):
@@ -69,10 +65,10 @@ class WebSocket(websocket.WebSocketHandler):
     @classmethod
     def broadcast(cls, data):
         channel, data = data[0].decode('utf-8').split(" ", 1)
-        user = json.loads(data)["user"]
+        user = json.loads(data)["username"]
 
         for p in cls.participants:
-            if p.authenticated and p.user == user:
+            if p.authenticated and p.username == user:
                 p.write_message(data)
 
 
